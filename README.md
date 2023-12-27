@@ -13,4 +13,4 @@ Libreria algebraica
     -> en R2 graficar ecuaciones y vectores
     -> en R3 graficar planos y superficies aplicando transforma
        ciones lineales
-# mateopo
+# mateopozzo
