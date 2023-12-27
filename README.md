@@ -1,6 +1,5 @@
 =============================PZZAL=============================
 Libreria algebraica
-objetivos
   matrices 
     -> resolver operaciones basicas (investigar optimizacion de
        multiplicacion)
@@ -14,5 +13,4 @@ objetivos
     -> en R2 graficar ecuaciones y vectores
     -> en R3 graficar planos y superficies aplicando transforma
        ciones lineales
-# mateopozzo
-# mateopozzo
+# mateopo
