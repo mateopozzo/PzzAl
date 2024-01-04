@@ -46,7 +46,7 @@ r2_write_ppm(uint32_t *pixel_array, size_t width, size_t height, char *path)
 
     return 0;
 }
-
+/*
 int main(){
 
     r2_fill(pixel_array, 0x0000FFAA);
@@ -54,6 +54,6 @@ int main(){
     return 0;
 
 }
-
+*/
 
 
