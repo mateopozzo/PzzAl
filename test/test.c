@@ -17,6 +17,9 @@ int main(void){
     matriz_consola_imprimir(mtr2);
     matriz_consola_imprimir(mtr3);
 
+    matriz_eliminar(mtr1);
+    matriz_eliminar(mtr2);
+    matriz_eliminar(mtr3);
+    
     return 0;
-
 }

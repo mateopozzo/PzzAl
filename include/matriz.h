@@ -18,7 +18,7 @@ void matriz_eliminar(matriz *mtr);
 matriz* matriz_consola_cargar(void);
 void matriz_consola_imprimir(matriz *mtr);
 
-float_t matriz_determinante(matriz *mtr);
+uint8_t matriz_determinante(matriz *mtr, float_t *det);
 matriz* matriz_inversa(matriz *mtr);
 matriz* matriz_suma(matriz *mtr_a, matriz *mtr_b);
 matriz* matriz_producto_escalar(matriz *mtr, float_t esc);

@@ -1,49 +1,64 @@
 #include "../include/matriz.h"
 #include <math.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
 
 /*================================================================================================*/
 // Funciones y macros de aplicacion interna
-#define DET2X2(a)   *a * *(a+3) - *(a+1) * *(a+2)\
+#define DET2X2(M)   M[0][0] * M[1][1] - \
+                    M[1][0] * M[0][1]
 
-#define SARRUS(a)   a[0] * a[4] * a[8] +\
-                    a[1] * a[5] * a[6] +\
-                    a[2] * a[3] * a[7] -\
-                    (a[2] * a[4] * a[6] +\
-                    a[0] * a[5] * a[7] +\
-                    a[1] * a[3] * a[8])
-/*
-double_t
-determinante_recursivo(matriz *ptr, size_t col, size_t fl)
+#define SARRUS(M)   M[0][0] * M[1][1] * M[2][2] * +\
+                    M[1][0] * M[2][1] * M[0][2] * +\
+                    M[2][0] * M[0][1] * M[1][2] * -\
+                    M[2][0] * M[1][1] * M[0][2] * -\
+                    M[1][0] * M[0][1] * M[2][2] * -\
+                    M[0][0] * M[2][1] * M[1][2]
+
+
+void
+swap(float_t *a, float *b)
 {
-    return 0;
+    float c = *a;
+    *a = *b;
+    *b = c;
 }
 
 
-bool
-lineas_paralelas(matriz *mtr)
+void
+_opel_fila_suma(matriz* mtr, size_t fila1, size_t fila2, float_t *escalar)
 {
-    // Paso clave en optimizacion de determinante
-    
-    double_t *ptr_fila, *ptr_col, *ptr_itr;
-    bool flag = false;
-    ptr_fila = mtr->array_values;
-
-    while( ptr_fila < mtr->array_values+mtr->fila && !flag ){
-        ptr_itr = ptr_fila + mtr->columna;
-        ptr_fila++;
+    if(!(*escalar)){
+        printf("Operacion no valida para escalar nulo");
+        return;
     }
 
-    return flag;
+    float_t *resultado = mtr->ptr_valores[fila1];
+    float_t *operando = mtr->ptr_valores[fila2];
+    for( float_t *end = mtr->ptr_valores[fila1]+mtr->columna; resultado != end; resultado++){
+        *resultado += *escalar * *operando;
+        operando++;
+    }
 }
-*/
+
+
+void
+_opel_fila_intercambio(matriz *mtr, size_t fila1, size_t fila2)
+{
+    float_t *fila_a = mtr->ptr_valores[fila1];
+    float_t *fila_b = mtr->ptr_valores[fila2];
+    float_t *fila_c = fila_a;
+    fila_a = fila_b;
+    fila_b = fila_c;
+}
+
 
 /*================================================================================================*/
+/*================================================================================================*/
+//  implementacion de biblioteca
 
-
-//Funciones visibles de libreria
 
 matriz*
 matriz_crear(size_t col, size_t fl, float_t **matriz_valores)
@@ -72,13 +87,18 @@ matriz_crear(size_t col, size_t fl, float_t **matriz_valores)
 void
 matriz_eliminar(matriz *mtr)
 {
-    for( uint8_t i=0; i<mtr->fila; ){
+    if( !mtr ) return;
+
+    for( uint8_t i=0; i<mtr->fila; i++ ){
        free(mtr->ptr_valores[i]);
        mtr->ptr_valores[i] = NULL;
+       printf("%d\n", i);
     }
+
     free(mtr->ptr_valores);
     mtr->ptr_valores = NULL;
     free(mtr);
+    mtr = NULL;
 }
 
 
@@ -131,6 +151,11 @@ matriz_consola_cargar(void)
 
 }
 
+/*   
+ *   las siguientes funciones realizan operaciones del conjunto Mnxn,
+ *   devuelven un puntero a una nueva matriz, sin sobreescribir la
+ *   la anterior  
+*/
 
 matriz*
 matriz_suma(matriz *mtr_a, matriz *mtr_b)
@@ -172,21 +197,6 @@ matriz_producto_escalar(matriz *mtr, float_t esc)
     return matriz_crear(mtr->columna, mtr->fila, ptr_producto_esc);
 }
 
-
-float_t 
-matriz_determinante(matriz *mtr)
-{
-    /*  Implementacion recursiva
-     *  averiguar solucion optimizada si es posible  */
-    
-    if( mtr->fila != mtr->columna ){
-        printf("Imposible determinar para matriz no cuadrada\n");
-        return 0;
-    }
-    return 0;
-}
-
-
 matriz*
 matriz_producto_matricial(matriz *mtra, matriz *mtrb)
 {
@@ -216,5 +226,97 @@ matriz_producto_matricial(matriz *mtra, matriz *mtrb)
     }
 
     return matriz_crear(producto_cols, producto_filas, ptr_producto_mat);
+}
+
+uint8_t
+matriz_determinante(matriz *mtr, float_t *det)
+{
+    /*  Retorna falso (0) si la matriz no es cuadrada
+     *  Aprovechar propiedad de matriz triangular  
+     *  1 - Detectar si hay linea nula  
+     *  2 - Triangular matriz con operaiones elementales
+     *  3 - Producto de elementos de diagonal por escalar*/
+
+    if( mtr->fila != mtr->columna ){
+        printf("Imposible determinar para matriz no cuadrada\n");
+        return 0;
+    }
+    
+    //  Soluciones especificas para matrices de 2x2 y 3x3
+    if( mtr->fila == 2 && mtr->columna == 3 ){
+        *det = DET2X2(mtr->ptr_valores);
+        return 1;
+    }
+
+    if( mtr->fila == 3 && mtr->columna == 3 ){
+        *det = SARRUS(mtr->ptr_valores);
+        return 1;
+    }
+
+    //  Verifico si es posible crear alguna linea nula
+    //  Algoritmo de recorrido anotando posiciones nulas
+    //  Considero que alguna linea contiene un 0 hasta que se demuestre el contrario
+    
+    uint8_t *filas_con_valor_nulo = malloc(sizeof(int) * mtr->columna);
+    uint8_t *columnas_con_valor_nulo = malloc(sizeof(int) * mtr->fila);
+    uint8_t linea_nula = 1;
+    uint8_t i, j;
+
+    for( i=0; i<mtr->fila; i++ )
+        filas_con_valor_nulo = columnas_con_valor_nulo = 0;
+    
+    //  Recorro la matriz
+    for( i=0; i<mtr->fila; i++ ){
+        for( j=0; j<mtr->columna; j++){
+            if(!(mtr->ptr_valores[i][j])){
+                filas_con_valor_nulo[i] = 1;
+                columnas_con_valor_nulo[j] = 1;
+            }
+        }
+    }
+
+    i=j=0;
+    while( i<mtr->fila && linea_nula ){
+        if( !filas_con_valor_nulo[i] )
+            linea_nula = 0;
+        i++;
+    }
+        
+    if( linea_nula ){
+        *det = 0;
+        return 1; 
+    }
+    linea_nula = 1;
+        
+    while( j<mtr->fila && linea_nula ){
+        if( !columnas_con_valor_nulo[j] )
+            linea_nula = 0;
+        j++;
+    }
+
+    if( linea_nula ){
+        *det = 0;
+        return 1; 
+    }
+
+    //  Finalmente, si no se encontro alguna 
+    //  posible linea nula, se procede a triangular la matriz
+
+
+
+    return 1; 
+    
+}
+
+matriz *
+matriz_triangular(matriz *mtr)
+{
+    /*  Recibe una matriz y la triangula mediante operaciones elementales  */
+
+    matriz * mtr_triangular = matriz_crear(mtr->columna, mtr->fila, mtr->ptr_valores);
+    
+    // Reviso que no haya ceros en diag ppal
+
+
 }
 
