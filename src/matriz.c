@@ -28,7 +28,7 @@ swap(float_t *a, float *b)
 
 
 void
-_opel_fila_suma(matriz* mtr, size_t fila1, size_t fila2, float_t *escalar)
+_opel_fila_suma(matriz* mtr, uint fila1, uint fila2, float_t *escalar)
 {
     if(!(*escalar)){
         printf("Operacion no valida para escalar nulo");
@@ -45,7 +45,7 @@ _opel_fila_suma(matriz* mtr, size_t fila1, size_t fila2, float_t *escalar)
 
 
 void
-_opel_fila_intercambio(matriz *mtr, size_t fila1, size_t fila2)
+_opel_fila_intercambio(matriz *mtr, uint fila1, uint fila2)
 {
     float_t *fila_a = mtr->ptr_valores[fila1];
     float_t *fila_b = mtr->ptr_valores[fila2];
@@ -312,11 +312,23 @@ matriz *
 matriz_triangular(matriz *mtr)
 {
     /*  Recibe una matriz y la triangula mediante operaciones elementales  */
-
     matriz * mtr_triangular = matriz_crear(mtr->columna, mtr->fila, mtr->ptr_valores);
     
-    // Reviso que no haya ceros en diag ppal
+    //  Reviso que no haya ceros en diag ppal
+    //  Se le suma alguna fila que desanule el valor
+    for( uint i = 0; i < mtr->fila; i++  ){
+        if( !mtr->ptr_valores[i][i] ){
+            //  Busco alguna fila que se pueda sumar a esta
+            uint j = 0;
+            while( !mtr->ptr_valores[j][i] && j < mtr->fila ) j++;
+
+            float_t k = 1;
+            _opel_fila_suma(mtr, i, j, &k);
+        }
+    }
 
 
+    
+    return mtr_triangular;
 }
 
