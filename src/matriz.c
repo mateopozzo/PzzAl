@@ -327,8 +327,10 @@ matriz_triangular(matriz *mtr)
         }
     }
 
-
+    //  Con la enesima fila, vuelvo nulo los elemntos de la enesima columna 
+    //  Por debajo de la diag ppal
     
+        
     return mtr_triangular;
 }
 
