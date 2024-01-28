@@ -10,11 +10,11 @@
 #define DET2X2(M)   M[0][0] * M[1][1] - \
                     M[1][0] * M[0][1]
 
-#define SARRUS(M)   M[0][0] * M[1][1] * M[2][2] * +\
-                    M[1][0] * M[2][1] * M[0][2] * +\
-                    M[2][0] * M[0][1] * M[1][2] * -\
-                    M[2][0] * M[1][1] * M[0][2] * -\
-                    M[1][0] * M[0][1] * M[2][2] * -\
+#define SARRUS(M)   M[0][0] * M[1][1] * M[2][2] +\
+                    M[1][0] * M[2][1] * M[0][2] +\
+                    M[2][0] * M[0][1] * M[1][2] -\
+                    M[2][0] * M[1][1] * M[0][2] -\
+                    M[1][0] * M[0][1] * M[2][2] -\
                     M[0][0] * M[2][1] * M[1][2]
 
 
@@ -30,8 +30,9 @@ swap(float_t *a, float *b)
 void
 _opel_fila_suma(matriz* mtr, uint fila1, uint fila2, float_t *escalar)
 {
+    //  Se suma fila1 += fila2*escalar
     if(!(*escalar)){
-        printf("Operacion no valida para escalar nulo");
+        printf("Operacion no valida para escalar nulo\n");
         return;
     }
 
@@ -70,7 +71,6 @@ matriz_crear(size_t col, size_t fl, float_t **matriz_valores)
     mtr->columna = col;
     mtr->fila = fl;
     mtr->ptr_valores = malloc(sizeof(float_t*) * fl);
-
     uint8_t i, j;
 
     for( i=0; i<fl; i++ ){
@@ -108,11 +108,12 @@ matriz_consola_imprimir(matriz *mtr)
     if(mtr==NULL)   return;
 
     for(int i=0; i<mtr->fila; i++){
-        for(int j=0; j<mtr->columna; j++)
-           printf("%f ", mtr->ptr_valores[i][j]);
+        for(int j=0; j<mtr->columna; j++){
+            printf("%f ", mtr->ptr_valores[i][j]);
+        }
         printf("\n");
     }
-
+    return;
 }
 
 
@@ -121,9 +122,9 @@ matriz_consola_cargar(void)
 {
     size_t filas, columnas;
     char * aux_in = malloc(sizeof(char) * 100);
-    printf("tamaño de la matriz\nfilas: ");
     
     //  lee consola y guarda la fila
+    printf("filas: ");
     fgets(aux_in, 5, stdin);
     filas = atoi(aux_in);
     if( filas > MATRIZ_SIZE_MAX || filas <= 0 ) return NULL;
@@ -142,13 +143,13 @@ matriz_consola_cargar(void)
         if( ptr_valores[i] == NULL ) return NULL;
 
         for( uint8_t j=0; j<columnas; j++ ){
-           fgets(aux_in, 100, stdin);
+            fgets(aux_in, 100, stdin);
             ptr_valores[i][j] = atoi(aux_in);
         }
     }
-    
-    return matriz_crear(columnas, filas, ptr_valores);
 
+    matriz *mtr_ret = matriz_crear(columnas, filas, ptr_valores);
+    return mtr_ret;
 }
 
 /*   
@@ -231,6 +232,7 @@ matriz_producto_matricial(matriz *mtra, matriz *mtrb)
 uint8_t
 matriz_determinante(matriz *mtr, float_t *det)
 {
+    printf("determinante\n");
     /*  Retorna falso (0) si la matriz no es cuadrada
      *  Aprovechar propiedad de matriz triangular  
      *  1 - Detectar si hay linea nula  
@@ -243,12 +245,12 @@ matriz_determinante(matriz *mtr, float_t *det)
     }
     
     //  Soluciones especificas para matrices de 2x2 y 3x3
-    if( mtr->fila == 2 && mtr->columna == 3 ){
+    if( mtr->fila == 2 ){
         *det = DET2X2(mtr->ptr_valores);
         return 1;
     }
 
-    if( mtr->fila == 3 && mtr->columna == 3 ){
+    if( mtr->fila == 3 ){
         *det = SARRUS(mtr->ptr_valores);
         return 1;
     }
@@ -257,13 +259,15 @@ matriz_determinante(matriz *mtr, float_t *det)
     //  Algoritmo de recorrido anotando posiciones nulas
     //  Considero que alguna linea contiene un 0 hasta que se demuestre el contrario
     
-    uint8_t *filas_con_valor_nulo = malloc(sizeof(int) * mtr->columna);
-    uint8_t *columnas_con_valor_nulo = malloc(sizeof(int) * mtr->fila);
-    uint8_t linea_nula = 1;
+    uint8_t *filas_con_valor_nulo = malloc(sizeof(uint8_t) * mtr->columna);
+    uint8_t *columnas_con_valor_nulo = malloc(sizeof(uint8_t) * mtr->fila);
     uint8_t i, j;
 
+    if(filas_con_valor_nulo == 0 || columnas_con_valor_nulo == 0)
+        return 0;
+    
     for( i=0; i<mtr->fila; i++ )
-        filas_con_valor_nulo = columnas_con_valor_nulo = 0;
+        filas_con_valor_nulo[i] = columnas_con_valor_nulo[i] = 0;
     
     //  Recorro la matriz
     for( i=0; i<mtr->fila; i++ ){
@@ -276,33 +280,33 @@ matriz_determinante(matriz *mtr, float_t *det)
     }
 
     i=j=0;
-    while( i<mtr->fila && linea_nula ){
-        if( !filas_con_valor_nulo[i] )
-            linea_nula = 0;
-        i++;
-    }
+
+    while( i<mtr->fila && filas_con_valor_nulo[i])  i++;
         
-    if( linea_nula ){
+    if( i==mtr->fila ){
+        printf("columna nula\n");
         *det = 0;
         return 1; 
     }
-    linea_nula = 1;
-        
-    while( j<mtr->fila && linea_nula ){
-        if( !columnas_con_valor_nulo[j] )
-            linea_nula = 0;
-        j++;
-    }
+    
+    while( j<mtr->columna && columnas_con_valor_nulo[j])    j++;
 
-    if( linea_nula ){
+    if( j==mtr->fila ){
+        printf("fila nula\n");
         *det = 0;
         return 1; 
     }
 
     //  Finalmente, si no se encontro alguna 
     //  posible linea nula, se procede a triangular la matriz
+    //  y aprovechar las propiedades de las matrices triangulares
+    matriz *mtr_triangular = matriz_triangular(mtr);
+    *det = mtr->ptr_valores[0][0];
+    for(i=1; i<mtr->fila; i++)
+        *det *= mtr_triangular->ptr_valores[i][i];
 
-
+    free(filas_con_valor_nulo);
+    free(columnas_con_valor_nulo);
 
     return 1; 
     
@@ -311,16 +315,21 @@ matriz_determinante(matriz *mtr, float_t *det)
 matriz *
 matriz_triangular(matriz *mtr)
 {
+    if( mtr == NULL )   return 0;
+    
     /*  Recibe una matriz y la triangula mediante operaciones elementales  */
-    matriz * mtr_triangular = matriz_crear(mtr->columna, mtr->fila, mtr->ptr_valores);
+    matriz *mtr_triangular = NULL;
+    mtr_triangular = matriz_crear(mtr->columna, mtr->fila, mtr->ptr_valores);
+
+    if( mtr_triangular == NULL )    return 0;
     
     //  Reviso que no haya ceros en diag ppal
     //  Se le suma alguna fila que desanule el valor
-    for( uint i = 0; i < mtr->fila; i++  ){
-        if( !mtr->ptr_valores[i][i] ){
+    for( uint i = 0; i < (mtr_triangular->fila); i++ ){
+        if( !(mtr_triangular->ptr_valores[i][i]) ){
             //  Busco alguna fila que se pueda sumar a esta
             uint j = 0;
-            while( !mtr->ptr_valores[j][i] && j < mtr->fila ) j++;
+            while( (!(mtr_triangular->ptr_valores[j][i])) && j < mtr->fila ) j++;
 
             float_t k = 1;
             _opel_fila_suma(mtr, i, j, &k);
@@ -329,8 +338,18 @@ matriz_triangular(matriz *mtr)
 
     //  Con la enesima fila, vuelvo nulo los elemntos de la enesima columna 
     //  Por debajo de la diag ppal
-    
-        
+    float escalar;
+    for( uint i=0; i < mtr->columna; i++ ){
+        for( uint j=1; j+i < mtr->fila; j++ ){
+            if( mtr->ptr_valores[i+j][i] ){
+                if( mtr_triangular->ptr_valores[i][i] )
+                    escalar = -(mtr_triangular->ptr_valores[i+j][i]/
+                            mtr_triangular->ptr_valores[i][i]);
+                _opel_fila_suma(mtr_triangular, i+j, i, &escalar);
+            }
+        }
+    }
+
     return mtr_triangular;
 }
 

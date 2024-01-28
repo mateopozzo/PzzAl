@@ -24,6 +24,7 @@ matriz* matriz_suma(matriz *mtr_a, matriz *mtr_b);
 matriz* matriz_producto_escalar(matriz *mtr, float_t esc);
 matriz* matriz_producto_matricial(matriz *mtr_a, matriz *mtr_b);
 float_t* matriz_autovalores(matriz *mtr);   //  Devuelve arreglo de valores, el primer valor es un entero que indica la cantidad de valores que contiene
+matriz* matriz_triangular(matriz *mtr);
 matriz* matriz_diagonalizar(matriz *mtr);
 
 #endif
